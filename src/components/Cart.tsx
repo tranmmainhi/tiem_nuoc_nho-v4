@@ -6,6 +6,7 @@ import { CartItem, OrderData } from '../types';
 import { SIZES, TOPPINGS } from './Menu';
 import { useUI } from '../context/UIContext';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { notificationService } from '../services/NotificationService';
 import { Invoice } from './Invoice';
 
@@ -20,6 +21,7 @@ interface CartProps {
 export function Cart({ appsScriptUrl, onNavigateSettings }: CartProps) {
   const { setIsFabHidden } = useUI();
   const { orders, createOrder, fetchAllData, updateOrderStatus } = useData();
+  const { currentUser } = useAuth();
   const { cart, updateQuantity, updateCartItem, clearCart, restoreCart, saveCartForLater, loadSavedCart, deleteSavedCart, savedCarts } = useCart();
   const [customerName, setCustomerName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -340,6 +342,8 @@ export function Cart({ appsScriptUrl, onNavigateSettings }: CartProps) {
       paymentMethod,
       orderStatus:   'Chờ xử lý',
       paymentStatus: paymentMethod === 'Tiền mặt' ? 'Chưa thanh toán' : 'Đã thanh toán',
+      staffId:       currentUser?.id,
+      staffName:     currentUser?.name,
     };
 
     try {

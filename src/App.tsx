@@ -16,6 +16,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { UIProvider, useUI } from './context/UIContext';
 import { DataProvider, useData } from './context/DataContext';
 import { CartProvider, useCart } from './context/CartContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { RefreshCw, Loader2, X } from 'lucide-react';
 import { notificationService } from './services/NotificationService';
 
@@ -34,6 +35,7 @@ function AppContent({ appsScriptUrl, setAppsScriptUrl }: AppContentProps) {
   const { isFabHidden, setIsFabHidden, isNavHidden, setIsNavHidden } = useUI();
   const { isRefreshing, isLoading } = useData();
   const { cart, cartCount, updateQuantity, updateCartItem, clearCart, restoreCart } = useCart();
+  const { currentUser, isAuthenticated, isAdmin } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [newOrderNotification, setNewOrderNotification] = useState<any>(null);
@@ -182,19 +184,21 @@ function AppContent({ appsScriptUrl, setAppsScriptUrl }: AppContentProps) {
             )}
           </button>
 
-          <button 
-            onClick={() => { setAppMode('management'); window.location.hash = '#/staff'; }}
-            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-xl ${appMode === 'management' ? 'bg-white dark:bg-stone-800 text-[#C9252C] dark:text-red-400 shadow-sm' : 'text-stone-400 dark:text-stone-500 hover:text-stone-600'}`}
-          >
-            <LayoutDashboard className={`w-4 h-4 ${appMode === 'management' ? 'text-[#C9252C] dark:text-red-400' : ''}`} />
-            {appMode === 'management' && (
-              <span
-                className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap"
-              >
-                Quản lý
-              </span>
-            )}
-          </button>
+          {isAuthenticated && (
+            <button 
+              onClick={() => { setAppMode('management'); window.location.hash = '#/staff'; }}
+              className={`relative flex items-center gap-2 px-3 py-1.5 rounded-xl ${appMode === 'management' ? 'bg-white dark:bg-stone-800 text-[#C9252C] dark:text-red-400 shadow-sm' : 'text-stone-400 dark:text-stone-500 hover:text-stone-600'}`}
+            >
+              <LayoutDashboard className={`w-4 h-4 ${appMode === 'management' ? 'text-[#C9252C] dark:text-red-400' : ''}`} />
+              {appMode === 'management' && (
+                <span
+                  className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap"
+                >
+                  Quản lý
+                </span>
+              )}
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button 
@@ -260,18 +264,23 @@ function AppContent({ appsScriptUrl, setAppsScriptUrl }: AppContentProps) {
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
         <nav className="bg-white dark:bg-stone-900 border-t border-stone-100 dark:border-stone-800 px-2 pt-2 pb-6 flex justify-around items-center">
-          {(appMode === 'order' ? [
+          {((appMode === 'order' ? [
             { to: '/', icon: Coffee, label: 'Menu' },
             { to: '/cart', icon: ShoppingBag, label: 'Giỏ', badge: cartCount },
             { to: '/history', icon: Clock, label: 'Lịch sử' },
             { to: '/settings', icon: SettingsIcon, label: 'Cài đặt' },
           ] : [
             { to: '/staff/dashboard', icon: BarChart3, label: 'Dashboard', roles: ['manager'] },
-            { to: '/staff/operations', icon: LayoutDashboard, label: 'Vận Hành' },
+            { to: '/staff/operations', icon: LayoutDashboard, label: 'Vận Hành', roles: ['staff', 'manager'] },
             { to: '/staff/finance', icon: Wallet, label: 'Tài Chính', roles: ['manager'] },
             { to: '/staff/inventory', icon: Package, label: 'Kho', roles: ['manager'] },
             { to: '/settings', icon: SettingsIcon, label: 'Cài đặt' },
-          ]).map((item, index) => {
+          ]) as Array<{ to: string; icon: any; label: string; badge?: number; roles?: string[] }>).filter(item => {
+            if (appMode === 'order') return true;
+            if (!isAuthenticated) return false;
+            if (!item.roles) return true;
+            return item.roles.includes(currentUser?.role || '');
+          }).map((item, index) => {
             const isActive = item.to === '/' ? location.pathname === '/' : (location.pathname.startsWith(item.to) || (item.to === '/staff/dashboard' && location.pathname === '/staff'));
             const Icon = item.icon;
             
@@ -304,13 +313,6 @@ function AppContent({ appsScriptUrl, setAppsScriptUrl }: AppContentProps) {
               </Link>
             );
 
-            if ('roles' in item && item.roles) {
-              return (
-                <RoleGuard key={`${item.to}-${index}`} allowedRoles={item.roles as string[]}>
-                  {linkContent}
-                </RoleGuard>
-              );
-            }
             return linkContent;
           })}
         </nav>
@@ -341,11 +343,13 @@ export default function App() {
     <ThemeProvider>
       <UIProvider>
         <DataProvider appsScriptUrl={appsScriptUrl}>
-          <CartProvider>
-            <HashRouter>
-              <AppContent appsScriptUrl={appsScriptUrl} setAppsScriptUrl={setAppsScriptUrl} />
-            </HashRouter>
-          </CartProvider>
+          <AuthProvider>
+            <CartProvider>
+              <HashRouter>
+                <AppContent appsScriptUrl={appsScriptUrl} setAppsScriptUrl={setAppsScriptUrl} />
+              </HashRouter>
+            </CartProvider>
+          </AuthProvider>
         </DataProvider>
       </UIProvider>
     </ThemeProvider>

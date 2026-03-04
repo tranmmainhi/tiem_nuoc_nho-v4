@@ -384,6 +384,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode; appsScriptUrl: 
           total:         Number(orderData.total) || 0,
           subtotal:      Number(orderData.total) || 0,
           thanhTien:     Number(orderData.total) || 0,
+          staffId:       orderData.staffId || '',
+          staffName:     orderData.staffName || '',
         }),
       });
       const result = await response.json();

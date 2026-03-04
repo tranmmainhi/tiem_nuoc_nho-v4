@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Save, CheckCircle2, Store, Printer, Volume2, Wifi, Moon, Sun, Database, RotateCcw, Clock, AlertCircle } from 'lucide-react';
+import { Save, CheckCircle2, Store, Printer, Volume2, Wifi, Moon, Sun, Database, RotateCcw, Clock, AlertCircle, User, LogOut, Shield, Users, Plus, Trash2, Edit2, KeyRound, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
+import { Staff } from '../types';
 
 interface SettingsProps {
   appsScriptUrl: string;
@@ -9,9 +11,221 @@ interface SettingsProps {
   appMode: 'order' | 'management';
 }
 
+function StaffLogin() {
+  const { login, currentUser, logout, checkIn, checkOut, timeSheets } = useAuth();
+  const [username, setUsername] = useState('');
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (login(username, pin)) {
+      setUsername('');
+      setPin('');
+      setError('');
+    } else {
+      setError('Tên đăng nhập hoặc mã PIN không đúng');
+    }
+  };
+
+  if (currentUser) {
+    const todaySheet = timeSheets.find(t => t.staffId === currentUser.id && !t.checkOut);
+    
+    return (
+      <section className="bg-white dark:bg-stone-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-stone-100 dark:border-stone-800 space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center text-stone-600 dark:text-stone-400">
+              <User className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="font-black text-stone-800 dark:text-white text-lg">{currentUser.name}</h2>
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${
+                  currentUser.role === 'manager' 
+                    ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                    : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                }`}>
+                  {currentUser.role === 'manager' ? 'Quản Lý' : 'Nhân Viên'}
+                </span>
+                <span className={`w-2 h-2 rounded-full ${todaySheet ? 'bg-green-500' : 'bg-stone-300'}`} />
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={logout}
+            className="p-2 text-stone-400 hover:text-red-500 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={checkIn}
+            disabled={!!todaySheet}
+            className="py-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-xl font-bold text-xs uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Check In
+          </button>
+          <button
+            onClick={checkOut}
+            disabled={!todaySheet}
+            className="py-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 rounded-xl font-bold text-xs uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Check Out
+          </button>
+        </div>
+        
+        {todaySheet && (
+          <div className="text-center text-[10px] text-stone-400 font-medium">
+            Đã check-in lúc: {new Date(todaySheet.checkIn).toLocaleTimeString('vi-VN')}
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="bg-white dark:bg-stone-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-stone-100 dark:border-stone-800 space-y-5">
+      <div className="flex items-center gap-3.5">
+        <div className="w-10 h-10 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 rounded-xl flex items-center justify-center">
+          <Shield className="w-5 h-5" />
+        </div>
+        <div>
+          <h2 className="font-black text-stone-800 dark:text-white text-base leading-none">Đăng nhập nhân viên</h2>
+          <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-1">Staff Login</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-wider ml-1">Tài khoản</label>
+          <input 
+            type="text" 
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-2xl px-4 py-3 font-bold text-stone-800 dark:text-white text-sm outline-none focus:border-stone-400"
+            placeholder="Nhập tên đăng nhập..."
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-wider ml-1">Mã PIN</label>
+          <input 
+            type="password" 
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            className="w-full bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-2xl px-4 py-3 font-bold text-stone-800 dark:text-white text-sm outline-none focus:border-stone-400"
+            placeholder="****"
+            maxLength={6}
+          />
+        </div>
+        
+        {error && <p className="text-xs text-red-500 font-bold">{error}</p>}
+
+        <button 
+          type="submit"
+          className="w-full bg-stone-900 dark:bg-white text-white dark:text-stone-900 py-3 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg shadow-stone-900/10"
+        >
+          Đăng nhập
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function StaffManagement() {
+  const { staffList, addStaff, updateStaff, deleteStaff } = useAuth();
+  const [isAdding, setIsAdding] = useState(false);
+  const [newStaff, setNewStaff] = useState({ name: '', username: '', pin: '', role: 'staff' as const });
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newStaff.name && newStaff.username && newStaff.pin) {
+      addStaff({ ...newStaff, active: true });
+      setIsAdding(false);
+      setNewStaff({ name: '', username: '', pin: '', role: 'staff' });
+    }
+  };
+
+  return (
+    <section className="bg-white dark:bg-stone-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-stone-100 dark:border-stone-800 space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center shadow-inner">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="font-black text-stone-800 dark:text-white text-base leading-none">Quản lý nhân sự</h2>
+            <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mt-1">Staff Management</p>
+          </div>
+        </div>
+        <button 
+          onClick={() => setIsAdding(!isAdding)}
+          className="w-8 h-8 bg-stone-100 dark:bg-stone-800 rounded-lg flex items-center justify-center text-stone-600 dark:text-stone-400"
+        >
+          {isAdding ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {isAdding && (
+        <form onSubmit={handleAdd} className="p-4 bg-stone-50 dark:bg-stone-950 rounded-2xl space-y-3 border border-stone-200 dark:border-stone-800">
+          <input 
+            placeholder="Tên nhân viên" 
+            value={newStaff.name}
+            onChange={e => setNewStaff({...newStaff, name: e.target.value})}
+            className="w-full p-2 rounded-lg text-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input 
+              placeholder="Username" 
+              value={newStaff.username}
+              onChange={e => setNewStaff({...newStaff, username: e.target.value})}
+              className="w-full p-2 rounded-lg text-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800"
+            />
+            <input 
+              placeholder="PIN (4 số)" 
+              value={newStaff.pin}
+              maxLength={4}
+              onChange={e => setNewStaff({...newStaff, pin: e.target.value})}
+              className="w-full p-2 rounded-lg text-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800"
+            />
+          </div>
+          <select 
+            value={newStaff.role}
+            onChange={e => setNewStaff({...newStaff, role: e.target.value as any})}
+            className="w-full p-2 rounded-lg text-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800"
+          >
+            <option value="staff">Nhân viên</option>
+            <option value="manager">Quản lý</option>
+          </select>
+          <button type="submit" className="w-full py-2 bg-stone-900 dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold uppercase">Thêm nhân viên</button>
+        </form>
+      )}
+
+      <div className="space-y-2">
+        {staffList.map(staff => (
+          <div key={staff.id} className="flex items-center justify-between p-3 bg-stone-50 dark:bg-stone-950 rounded-xl border border-stone-100 dark:border-stone-800">
+            <div>
+              <p className="font-bold text-sm text-stone-800 dark:text-white">{staff.name}</p>
+              <p className="text-[10px] text-stone-400">@{staff.username} • {staff.role === 'manager' ? 'Quản lý' : 'Nhân viên'}</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => deleteStaff(staff.id)} className="p-1.5 text-stone-400 hover:text-red-500">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function Settings({ appsScriptUrl, setAppsScriptUrl, appMode }: SettingsProps) {
   const { theme, toggleTheme } = useTheme();
   const { refreshInterval, setRefreshInterval, autoSyncEnabled: dataAutoSync, setAutoSyncEnabled: setDataAutoSync, fetchAllData, fixAll } = useData();
+  const { currentUser, isAdmin } = useAuth();
   
   // Initial values for dirty checking
   const [initialSettings, setInitialSettings] = useState({
@@ -187,6 +401,12 @@ export function Settings({ appsScriptUrl, setAppsScriptUrl, appMode }: SettingsP
 
       <div className="grid grid-cols-1 gap-6">
         
+        {/* Staff Login Section */}
+        <StaffLogin />
+
+        {/* Staff Management - Manager Only */}
+        {isAdmin && <StaffManagement />}
+
         {/* Store Info Section */}
         <section className="bg-white dark:bg-stone-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-stone-100 dark:border-stone-800 space-y-5">
           <div className="flex items-center gap-3.5">

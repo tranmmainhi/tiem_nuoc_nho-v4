@@ -75,6 +75,8 @@ export interface OrderData {
   paymentMethod: string;
   orderStatus: string;
   paymentStatus?: string;
+  staffId?: string;
+  staffName?: string;
 }
 
 export interface Expense {
@@ -84,4 +86,26 @@ export interface Expense {
   category: string;
   date: string;
   type: 'expense' | 'income';
+}
+
+export type Role = 'staff' | 'manager';
+
+export interface Staff {
+  id: string;
+  username: string;
+  password?: string;
+  name: string;
+  role: Role;
+  hourlyRate?: number;
+  active: boolean;
+  pin?: string;
+}
+
+export interface TimeSheet {
+  id: string;
+  staffId: string;
+  checkIn: string;
+  checkOut?: string;
+  totalHours?: number;
+  date: string;
 }
